@@ -39,6 +39,7 @@ class MainViewModel(
     fun setKeepAwake(on: Boolean) = viewModelScope.launch { settings.setKeepAwake(on) }
     fun setBoostBrightness(on: Boolean) = viewModelScope.launch { settings.setBoostBrightness(on) }
     fun setShowCodeValue(on: Boolean) = viewModelScope.launch { settings.setShowCodeValue(on) }
+    fun setLastViewedCardId(id: String?) = viewModelScope.launch { settings.setLastViewedCardId(id) }
 
     companion object {
         fun factory(app: BarcaddyApp): ViewModelProvider.Factory =

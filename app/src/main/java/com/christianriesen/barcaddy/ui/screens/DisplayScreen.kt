@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,10 +45,19 @@ fun DisplayScreen(
     onBack: () -> Unit,
 ) {
     val activity = LocalContext.current as? Activity
+    val window = activity?.window
+    val originalBrightness = remember(card.id) { window?.attributes?.screenBrightness }
+    val restoreWindow = {
+        if (window != null) {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            if (boostBrightness) {
+                val attrs = window.attributes
+                attrs.screenBrightness = originalBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                window.attributes = attrs
+            }
+        }
+    }
     DisposableEffect(card.id, keepAwake, boostBrightness) {
-        val window = activity?.window
-        val originalAttrs = window?.attributes
-        val originalBrightness = originalAttrs?.screenBrightness
         if (window != null) {
             if (keepAwake) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             if (boostBrightness) {
@@ -56,16 +66,11 @@ fun DisplayScreen(
                 window.attributes = attrs
             }
         }
-        onDispose {
-            if (window != null) {
-                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                if (boostBrightness) {
-                    val attrs = window.attributes
-                    attrs.screenBrightness = originalBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-                    window.attributes = attrs
-                }
-            }
-        }
+        onDispose { restoreWindow() }
+    }
+    val dismiss = {
+        restoreWindow()
+        onBack()
     }
 
     val palette = Palettes.byName(card.palette)
@@ -74,7 +79,7 @@ fun DisplayScreen(
         Modifier
             .fillMaxSize()
             .background(Color.White)
-            .clickable(onClick = onBack),
+            .clickable(onClick = dismiss),
     ) {
         Box(
             Modifier

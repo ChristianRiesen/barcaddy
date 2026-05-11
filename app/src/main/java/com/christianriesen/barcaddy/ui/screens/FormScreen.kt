@@ -8,15 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -46,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.christianriesen.barcaddy.data.Card
 import com.christianriesen.barcaddy.data.CodeKind
-import com.christianriesen.barcaddy.ui.components.CodeImage
 import com.christianriesen.barcaddy.ui.components.BarcaddyFormat
 import com.christianriesen.barcaddy.ui.components.IconBtn
 import com.christianriesen.barcaddy.ui.components.PaletteSwatch
@@ -148,53 +144,11 @@ fun FormScreen(
                 .verticalScroll(scroll)
                 .padding(horizontal = 20.dp),
         ) {
-            // Preview card
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .background(c.surface, RoundedCornerShape(20.dp))
-                    .padding(20.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (value.isBlank()) {
-                        Box(
-                            Modifier
-                                .height(120.dp)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text("Code preview will appear here", color = c.mutedSoft, fontSize = 13.sp)
-                        }
-                    } else if (kind == CodeKind.QR) {
-                        Box(
-                            Modifier
-                                .widthIn(max = 200.dp)
-                                .fillMaxWidth()
-                                .aspectRatio(1f),
-                        ) {
-                            CodeImage(value = value, format = format, modifier = Modifier.fillMaxSize())
-                        }
-                    } else {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(120.dp),
-                        ) {
-                            CodeImage(value = value, format = format, modifier = Modifier.fillMaxSize())
-                        }
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        value.ifBlank { "—" },
-                        color = c.muted,
-                        fontSize = 12.sp,
-                        letterSpacing = 1.5.sp,
-                    )
-                }
+            Spacer(Modifier.height(8.dp))
+            Field("Name") {
+                TextInput(value = name, onChange = { name = it }, placeholder = "e.g. Whole Foods")
             }
 
-            Spacer(Modifier.height(24.dp))
             Field("Type") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Segment("Barcode", kind == CodeKind.BARCODE, Modifier.weight(1f)) { kind = CodeKind.BARCODE }
@@ -213,10 +167,6 @@ fun FormScreen(
                     placeholder = if (kind == CodeKind.QR) "e.g. https://example.com or any text"
                                   else "e.g. 4012345678901",
                 )
-            }
-
-            Field("Name") {
-                TextInput(value = name, onChange = { name = it }, placeholder = "e.g. Whole Foods")
             }
 
             Field("Description (optional)") {

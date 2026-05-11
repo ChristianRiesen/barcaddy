@@ -7,7 +7,13 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -16,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -39,12 +46,24 @@ import com.christianriesen.barcaddy.ui.theme.BarcaddyTheme
 import com.christianriesen.barcaddy.util.CsvIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val app = application as BarcaddyApp
+
+        val startRoute = runBlocking {
+            val lastId = app.settingsRepository.snapshot().lastViewedCardId
+            if (lastId != null && app.cardRepository.findById(lastId) != null) {
+                Routes.display(lastId)
+            } else {
+                if (lastId != null) app.settingsRepository.setLastViewedCardId(null)
+                Routes.Home
+            }
+        }
 
         setContent {
             val vm: MainViewModel = viewModel(factory = MainViewModel.factory(app))
@@ -52,7 +71,7 @@ class MainActivity : ComponentActivity() {
             val settings by vm.settingsState.collectAsState()
 
             BarcaddyTheme(darkTheme = settings.darkMode) {
-                BarcaddyAppContent(vm = vm, cards = cards, settings = settings)
+                BarcaddyAppContent(vm = vm, cards = cards, settings = settings, startRoute = startRoute)
             }
         }
     }
@@ -63,6 +82,7 @@ private fun BarcaddyAppContent(
     vm: MainViewModel,
     cards: List<Card>,
     settings: Settings,
+    startRoute: String,
 ) {
     val nav = rememberNavController()
     val activity = LocalContext.current as Activity
@@ -108,7 +128,28 @@ private fun BarcaddyAppContent(
         }
     }
 
-    NavHost(navController = nav, startDestination = Routes.Home) {
+    LaunchedEffect(nav) {
+        nav.currentBackStackEntryFlow.collect { entry ->
+            val route = entry.destination.route ?: return@collect
+            if (route == Routes.DisplayPattern) {
+                val id = entry.arguments?.getString("id")
+                vm.setLastViewedCardId(id)
+            } else {
+                vm.setLastViewedCardId(null)
+            }
+        }
+    }
+
+    val navAnimSpec = tween<Float>(durationMillis = 350)
+    NavHost(
+        navController = nav,
+        startDestination = startRoute,
+        modifier = Modifier.fillMaxSize().systemBarsPadding(),
+        enterTransition = { fadeIn(animationSpec = navAnimSpec) },
+        exitTransition = { fadeOut(animationSpec = navAnimSpec) },
+        popEnterTransition = { fadeIn(animationSpec = navAnimSpec) },
+        popExitTransition = { fadeOut(animationSpec = navAnimSpec) },
+    ) {
         composable(Routes.Home) {
             HomeScreen(
                 cards = cards,
@@ -176,7 +217,14 @@ private fun BarcaddyAppContent(
                     showCodeValue = settings.showCodeValue,
                     keepAwake = settings.keepAwake,
                     boostBrightness = settings.boostBrightness,
-                    onBack = { nav.popBackStack() },
+                    onBack = {
+                        if (!nav.popBackStack()) {
+                            nav.navigate(Routes.Home) {
+                                popUpTo(Routes.DisplayPattern) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
                 )
             }
         }
