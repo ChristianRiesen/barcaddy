@@ -106,9 +106,17 @@ private fun BarcaddyAppContent(
                 if (list.isEmpty()) {
                     Toast.makeText(activity, "No cards found in CSV", Toast.LENGTH_SHORT).show()
                 } else {
-                    val merged = vm.snapshot() + list
-                    vm.replaceAll(merged)
-                    Toast.makeText(activity, "Imported ${list.size} cards", Toast.LENGTH_SHORT).show()
+                    val current = vm.snapshot()
+                    val seen = current.mapTo(mutableSetOf()) { it.value }
+                    val toAdd = list.filter { seen.add(it.value) }
+                    if (toAdd.isEmpty()) {
+                        Toast.makeText(activity, "No new cards to import", Toast.LENGTH_SHORT).show()
+                    } else {
+                        vm.replaceAll(current + toAdd)
+                        val skipped = list.size - toAdd.size
+                        val msg = if (skipped > 0) "Imported ${toAdd.size} cards ($skipped skipped)" else "Imported ${toAdd.size} cards"
+                        Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
