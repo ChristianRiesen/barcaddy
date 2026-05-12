@@ -1,3 +1,7 @@
+---
+layout: default
+title: Barcaddy Privacy Policy
+---
 # Barcaddy Privacy Policy
 
 _Last updated: 12 May 2026_
